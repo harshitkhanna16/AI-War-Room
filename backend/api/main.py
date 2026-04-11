@@ -51,17 +51,15 @@ def get_score():
 
 # ── SERVE FRONTEND ────────────────────────────────────────────────────
 
-# ✅ ROOT → show UI
+FRONTEND_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "frontend")
+
 @app.get("/")
 def root():
-    return FileResponse("war-room-simulator/frontend/index.html")
+    return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 
-# ✅ Serve JS, CSS, etc.
 @app.get("/{full_path:path}")
 def catch_all(full_path: str):
-    candidate = os.path.join("war-room-simulator/frontend", full_path)
-
+    candidate = os.path.join(FRONTEND_DIR, full_path)
     if os.path.exists(candidate) and os.path.isfile(candidate):
         return FileResponse(candidate)
-
-    return FileResponse("war-room-simulator/frontend/index.html")
+    return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))

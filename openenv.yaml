@@ -1,54 +1,51 @@
 name: war_room
 description: >
-A real-world strategic defence simulation environment where an AI agent must analyze evolving threats,
-allocate limited resources, and minimize damage over time.
+  A real-world strategic defence simulation environment where an AI agent must analyze evolving threats,
+  allocate limited resources, and minimize damage over time.
 
 version: "1.0"
 
 tasks:
+  - name: easy
+    description: Single drone threat requiring basic interception
 
-* name: easy
-  description: Single drone threat requiring basic interception
+  - name: medium
+    description: Combined cyber and drone threats requiring prioritization
 
-* name: medium
-  description: Combined cyber and drone threats requiring prioritization
-
-* name: hard
-  description: Multiple threats with limited resources requiring planning
+  - name: hard
+    description: Multiple threats with limited resources requiring planning
 
 actions:
-
-* intercept drone
-* block cyber
-* idle
+  - intercept drone
+  - block cyber
+  - idle
 
 observations:
-
-* visible_threats
-* threats
-* resources
-* time
-* damage
+  - visible_threats
+  - threats
+  - resources
+  - time
+  - damage
 
 reward:
-type: normalized
-range: [0.0, 1.0]
-description: >
-Reward is based on minimizing damage, resolving threats efficiently,
-and prioritizing critical threats.
+  type: normalized
+  range: [0.0, 1.0]
+  description: >
+    Reward is based on minimizing damage, resolving threats efficiently,
+    and prioritizing critical threats.
 
 evaluation:
-type: deterministic
-scoring: grader_based
-description: >
-Each task is evaluated using a deterministic grader that returns a score between 0 and 1.
+  type: deterministic
+  scoring: grader_based
+  description: >
+    Each task is evaluated using a deterministic grader that returns a score between 0 and 1.
 
 api:
-reset: POST /reset
-step: POST /step
-state: GET /state
-score: GET /score
+  reset: POST /reset
+  step: POST /step
+  state: GET /state
+  score: GET /score
 
 environment:
-deterministic: true
-max_steps: variable_by_task
+  deterministic: true
+  max_steps: variable_by_task
