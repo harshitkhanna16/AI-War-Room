@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI WAR ROOM — SECTOR 7</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="scanlines"></div>
+<div class="vignette"></div>
+
+<!-- ALERT OVERLAY -->
+<div id="alert-overlay" class="hidden">
+  <div class="alert-inner">
+    <div class="alert-icon">&#9888;</div>
+    <div class="alert-text" id="alert-text">INCOMING THREAT</div>
+    <div class="alert-sub" id="alert-sub">RESPONSE REQUIRED</div>
+  </div>
+  <div class="alert-bars"><div class="alert-bar-left"></div><div class="alert-bar-right"></div></div>
+</div>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-left">
+    <span class="logo">WAR ROOM</span>
+    <span class="logo-sub">COMMAND v3.0 — BACKEND LIVE</span>
+  </div>
+  <div class="header-center">
+    <span class="title-main">AI DEFENSE COMMAND</span>
+  </div>
+  <div class="header-right">
+    <div class="hud-item">
+      <span class="hud-label">TIME</span>
+      <span class="hud-val" id="clock">--:--:--</span>
+    </div>
+    <div class="hud-divider"></div>
+    <div class="hud-item">
+      <span class="hud-label">TASK</span>
+      <span class="hud-val" id="hud-task" style="color:var(--cyan)">—</span>
+    </div>
+    <div class="hud-divider"></div>
+    <div class="hud-item">
+      <span class="hud-label">THREAT</span>
+      <span class="hud-val threat-badge level-standby" id="threat-status">STANDBY</span>
+    </div>
+    <div class="hud-divider"></div>
+    <div class="hud-item">
+      <span class="hud-label">SIM STEP</span>
+      <span class="hud-val" id="step-counter">0</span>
+    </div>
+    <div class="hud-divider"></div>
+    <div class="hud-item">
+      <span class="hud-label">SCORE</span>
+      <span class="hud-val" id="hud-score" style="color:var(--yellow)">0.00</span>
+    </div>
+    <div class="hud-divider"></div>
+    <div class="hud-item">
+      <span class="hud-label">UPTIME</span>
+      <span class="hud-val" id="uptime-val" style="color:var(--green)">00:00:00</span>
+    </div>
+  </div>
+</header>
+
+<div class="main-layout">
+  <aside class="sidebar">
+    <div class="sidebar-section-label">STATIONS</div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" onclick="setView('overview',this)"><span class="nav-dot"></span>Overview</button>
+      <button class="nav-item" onclick="setView('radar',this)"><span class="nav-dot"></span>Threat Radar</button>
+      <button class="nav-item" onclick="setView('intel',this)"><span class="nav-dot"></span>Intel Feed</button>
+      <button class="nav-item" onclick="setView('ai',this)"><span class="nav-dot"></span>AI Analysis</button>
+      <button class="nav-item" onclick="setView('metrics',this)"><span class="nav-dot"></span>Risk Metrics</button>
+    </nav>
+    <div class="sidebar-section-label">ASSETS</div>
+    <nav class="sidebar-nav">
+      <button class="nav-item" onclick="setView('map',this)"><span class="nav-dot"></span>Asset Map</button>
+      <button class="nav-item" onclick="setView('history',this)"><span class="nav-dot"></span>Event History</button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="status-dot offline" id="sidebar-dot"></div>
+      <span id="sidebar-status">CONNECTING...</span>
+    </div>
+  </aside>
+
+  <div class="content-area">
+
+    <!-- ═══ VIEW: OVERVIEW ═══ -->
+    <div class="view active" id="view-overview">
+      <div class="top-row">
+        <div class="panel radar-panel">
+          <div class="panel-header">
+            <span class="panel-title">THREAT RADAR</span>
+            <span class="badge badge-live">LIVE</span>
+          </div>
+          <div class="radar-wrap">
+            <div class="radar-circle">
+              <div class="radar-grid"></div>
+              <div class="radar-rings"><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div></div>
+              <div class="radar-crosshair"><div class="ch-h"></div><div class="ch-v"></div></div>
+              <div class="sweep"></div>
+              <div id="blips"></div>
+            </div>
+            <div class="radar-legend">
+              <div class="legend-item"><span class="legend-dot cyber"></span>CYBER</div>
+              <div class="legend-item"><span class="legend-dot drone"></span>DRONE</div>
+            </div>
+          </div>
+        </div>
+        <div class="panel threats-panel">
+          <div class="panel-header">
+            <span class="panel-title">ACTIVE THREATS</span>
+            <span class="badge badge-count" id="threat-count">0 ACTIVE</span>
+          </div>
+          <div id="threat-list" class="threat-list">
+            <div class="empty-state">NO THREATS DETECTED — MONITORING</div>
+          </div>
+        </div>
+        <div class="panel metrics-panel">
+          <div class="panel-header">
+            <span class="panel-title">SYSTEM METRICS</span>
+            <span class="badge badge-monitor" id="sys-status">MONITORING</span>
+          </div>
+          <div class="metrics-grid">
+            <div class="metric-block">
+              <div class="metric-label">DAMAGE</div>
+              <div class="metric-val damage" id="metric-damage">0</div>
+              <div class="metric-sub">cumulative pts</div>
+            </div>
+            <div class="metric-block">
+              <div class="metric-label">RESOLVED</div>
+              <div class="metric-val neutralized" id="metric-neutralized">0</div>
+              <div class="metric-sub">this session</div>
+            </div>
+            <div class="metric-block wide">
+              <div class="metric-label">RISK SCORE</div>
+              <div class="metric-val risk" id="metric-risk">0</div>
+              <div class="metric-sub">0–100 scale</div>
+              <div class="risk-bar-wrap"><div class="risk-bar" id="risk-bar"></div></div>
+            </div>
+            <div class="metric-block">
+              <div class="metric-label">SIM STEP</div>
+              <div class="metric-val" style="color:var(--cyan);font-size:1.6rem;font-weight:900" id="metric-steps">0</div>
+              <div class="metric-sub">backend time</div>
+            </div>
+            <div class="metric-block">
+              <div class="metric-label">SCORE</div>
+              <div class="metric-val" style="color:var(--yellow);font-size:1.6rem;font-weight:900" id="metric-score">0.00</div>
+              <div class="metric-sub">cumul reward</div>
+            </div>
+          </div>
+          <div class="ai-engine-block">
+            <div class="ae-label">AI DECISION ENGINE</div>
+            <div class="ae-status" id="ae-status"><span class="ae-dot pulse" id="ae-dot"></span><span id="ae-label">STANDBY</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="bottom-row">
+        <div class="panel intel-panel">
+          <div class="panel-header">
+            <span class="panel-title">INTEL FEED</span>
+            <span class="badge badge-stream">STREAMING</span>
+          </div>
+          <div id="logs" class="logs"></div>
+        </div>
+        <div class="panel wave-panel">
+          <div class="panel-header">
+            <span class="panel-title">RISK WAVEFORM</span>
+            <span class="badge badge-info">LIVE CHART</span>
+          </div>
+          <canvas id="chart" style="flex:1;padding:8px"></canvas>
+        </div>
+        <div class="panel ai-panel">
+          <div class="panel-header">
+            <span class="panel-title">AI ANALYSIS</span>
+            <span class="badge badge-live" id="ai-badge">READY</span>
+          </div>
+          <div id="decision" class="decision-text">
+            <div class="ai-idle">&#9607; AWAITING THREAT DATA...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ VIEW: RADAR ═══ -->
+    <div class="view" id="view-radar">
+      <div class="radar-view-layout">
+        <div class="panel radar-full">
+          <div class="panel-header">
+            <span class="panel-title">TACTICAL RADAR — SECTOR 7</span>
+            <span class="badge badge-live">LIVE SWEEP</span>
+          </div>
+          <div class="radar-wrap" style="gap:12px">
+            <div class="radar-circle-full">
+              <div class="radar-grid"></div>
+              <div class="radar-rings"><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div></div>
+              <div class="radar-crosshair"><div class="ch-h"></div><div class="ch-v"></div></div>
+              <div class="sweep"></div>
+              <div id="blips2"></div>
+              <span class="sector-label" style="top:4px;left:50%;transform:translateX(-50%)">N</span>
+              <span class="sector-label" style="bottom:4px;left:50%;transform:translateX(-50%)">S</span>
+              <span class="sector-label" style="left:4px;top:50%;transform:translateY(-50%)">W</span>
+              <span class="sector-label" style="right:4px;top:50%;transform:translateY(-50%)">E</span>
+            </div>
+            <div class="radar-legend" style="gap:20px">
+              <div class="legend-item"><span class="legend-dot cyber"></span>CYBER THREAT</div>
+              <div class="legend-item"><span class="legend-dot drone"></span>DRONE / UAV</div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">CYBER THREATS</span><span class="badge" style="color:var(--red);border-color:var(--red)" id="cyber-count">0</span></div>
+          <div id="cyber-list" class="threat-list"><div class="empty-state">NONE DETECTED</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">DRONE / UAV</span><span class="badge" style="color:var(--orange);border-color:var(--orange)" id="drone-count">0</span></div>
+          <div id="drone-list" class="threat-list"><div class="empty-state">CLEAR AIRSPACE</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ VIEW: INTEL ═══ -->
+    <div class="view" id="view-intel">
+      <div class="intel-view-layout">
+        <div class="panel" style="display:flex;flex-direction:column">
+          <div class="panel-header">
+            <span class="panel-title">FULL INTEL FEED</span>
+            <span class="badge badge-stream">STREAMING</span>
+          </div>
+          <div class="intel-filters">
+            <button class="filter-btn active" onclick="filterLogs('all',this)">ALL</button>
+            <button class="filter-btn f-alert" onclick="filterLogs('alert',this)">&#9889; ALERTS</button>
+            <button class="filter-btn f-info" onclick="filterLogs('info',this)">&#8505; INFO</button>
+            <button class="filter-btn f-sys" onclick="filterLogs('system',this)">&#9881; SYSTEM</button>
+            <button class="filter-btn" style="color:var(--green-dim);border-color:var(--green-dim)" onclick="filterLogs('resolved',this)">&#10003; RESOLVED</button>
+          </div>
+          <div id="intel-logs-full" class="logs-full logs" style="flex:1"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div class="panel" style="flex:none">
+            <div class="panel-header"><span class="panel-title">FEED STATISTICS</span></div>
+            <div style="padding:12px;display:flex;flex-direction:column;gap:8px">
+              <div class="intel-stat-card"><div class="intel-stat-label">TOTAL EVENTS</div><div class="intel-stat-val" id="stat-total" style="color:var(--cyan)">0</div></div>
+              <div class="intel-stat-card"><div class="intel-stat-label">ALERT EVENTS</div><div class="intel-stat-val" id="stat-alerts" style="color:var(--red)">0</div></div>
+              <div class="intel-stat-card"><div class="intel-stat-label">RESOLVED</div><div class="intel-stat-val" id="stat-resolved" style="color:var(--green)">0</div></div>
+              <div class="intel-stat-card"><div class="intel-stat-label">BACKEND SCORE</div><div class="intel-stat-val" id="stat-backend-score" style="color:var(--yellow)">—</div></div>
+            </div>
+          </div>
+          <div class="panel" style="flex:1">
+            <div class="panel-header"><span class="panel-title">EVENT BREAKDOWN</span></div>
+            <canvas id="intel-chart" style="padding:12px;flex:1"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ VIEW: AI ═══ -->
+    <div class="view" id="view-ai">
+      <div class="ai-view-layout">
+        <div class="panel ai-chat-panel">
+          <div class="panel-header">
+            <span class="panel-title">AI COMMAND INTERFACE</span>
+            <span class="badge" style="color:var(--purple);border-color:var(--purple)">WARROOM-7B</span>
+          </div>
+          <div class="ai-model-info">
+            <span class="ai-model-badge">MODEL: WARROOM-7B</span>
+            <span class="ai-model-label">Tactical Decision Support · Clearance Level 5</span>
+          </div>
+          <div id="ai-chat-messages" class="ai-chat-messages">
+            <div class="ai-msg">
+              <div class="ai-msg-label">AI SYSTEM</div>
+              Command interface initialized. All data is sourced from the live backend. Ask for tactical assessments, threat analysis, or score reports. Try: "assess threat level", "show score", "recommend action".
+            </div>
+          </div>
+          <div class="ai-input-row">
+            <input class="ai-input" id="ai-input" type="text" placeholder="Enter tactical query..." onkeydown="if(event.key==='Enter')sendAIQuery()">
+            <button class="ai-send-btn" onclick="sendAIQuery()">SEND &#9654;</button>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">DECISION ENGINE</span><span class="badge badge-ok">ONLINE</span></div>
+          <div id="decision2" class="decision-text" style="font-size:.65rem"><div class="ai-idle">&#9607; AWAITING THREAT DATA...</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">COUNTERMEASURES</span></div>
+          <div id="countermeasures" class="decision-text" style="font-size:.65rem">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div id="cm-cyber" style="padding:8px;border:1px solid rgba(255,59,59,.2);background:rgba(255,59,59,.04)">
+                <div style="font-family:var(--font-head);font-size:.55rem;color:var(--red);letter-spacing:.12em;margin-bottom:4px">CYBER DEFENSE</div>
+                <div id="cm-cyber-status" style="font-size:.6rem;color:var(--text-dim)">Firewall: ACTIVE · IDS: ARMED · Honeypot: DEPLOYED</div>
+              </div>
+              <div id="cm-drone" style="padding:8px;border:1px solid rgba(255,140,0,.2);background:rgba(255,140,0,.04)">
+                <div style="font-family:var(--font-head);font-size:.55rem;color:var(--orange);letter-spacing:.12em;margin-bottom:4px">DRONE DEFENSE</div>
+                <div id="cm-drone-status" style="font-size:.6rem;color:var(--text-dim)">Interceptors: STANDBY · Jamming: READY · Radar: TRACKING</div>
+              </div>
+              <div id="cm-resources" style="padding:8px;border:1px solid rgba(79,195,247,.2);background:rgba(79,195,247,.04)">
+                <div style="font-family:var(--font-head);font-size:.55rem;color:var(--blue);letter-spacing:.12em;margin-bottom:4px">RESOURCE STATUS</div>
+                <div id="cm-resource-status" style="font-size:.6rem;color:var(--text-dim)">Defense Units: — · Cyber Teams: —</div>
+              </div>
+              <div id="cm-actions" style="padding:8px;border:1px solid rgba(192,132,252,.2);background:rgba(192,132,252,.04)">
+                <div style="font-family:var(--font-head);font-size:.55rem;color:var(--purple);letter-spacing:.12em;margin-bottom:4px">LAST ACTIONS SENT</div>
+                <div id="cm-action-status" style="font-size:.6rem;color:var(--text-dim)">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">THREAT FORECAST</span><span class="badge badge-info">PREDICTIVE</span></div>
+          <canvas id="forecast-chart" style="flex:1;padding:10px"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ VIEW: METRICS ═══ -->
+    <div class="view" id="view-metrics">
+      <div class="metrics-view-layout">
+        <div class="panel metrics-chart-panel">
+          <div class="panel-header"><span class="panel-title">RISK WAVEFORM — EXTENDED</span><span class="badge badge-live">LIVE</span></div>
+          <canvas id="metrics-chart" style="flex:1;width:100%;padding:8px"></canvas>
+        </div>
+        <div class="panel"><div class="panel-header"><span class="panel-title">DAMAGE INDEX</span></div>
+          <div class="big-metric"><div class="big-metric-label">CUMULATIVE DAMAGE (BACKEND)</div><div class="big-metric-val" id="bm-damage" style="color:var(--red)">0</div><div class="big-metric-bar"><div class="big-metric-fill" id="bm-damage-bar" style="background:var(--red);width:0%"></div></div><div class="big-metric-trend" id="bm-damage-trend" style="color:var(--text-dim)">— No data yet</div></div>
+        </div>
+        <div class="panel"><div class="panel-header"><span class="panel-title">THREATS RESOLVED</span></div>
+          <div class="big-metric"><div class="big-metric-label">TOTAL RESOLVED (BACKEND)</div><div class="big-metric-val" id="bm-neut" style="color:var(--green)">0</div><div class="big-metric-bar"><div class="big-metric-fill" id="bm-neut-bar" style="background:var(--green);width:0%"></div></div><div class="big-metric-trend" id="bm-neut-trend" style="color:var(--text-dim)">— Awaiting data</div></div>
+        </div>
+        <div class="panel"><div class="panel-header"><span class="panel-title">COMPOSITE RISK SCORE</span></div>
+          <div class="big-metric"><div class="big-metric-label">RISK SCORE (0–100)</div><div class="big-metric-val" id="bm-risk" style="color:var(--orange)">0</div><div class="big-metric-bar"><div class="big-metric-fill" id="bm-risk-bar" style="background:var(--orange);width:0%"></div></div><div class="big-metric-trend" id="bm-risk-trend" style="color:var(--text-dim)">— Calculating...</div></div>
+        </div>
+        <div class="panel"><div class="panel-header"><span class="panel-title">THREAT DISTRIBUTION</span></div><canvas id="threat-dist-chart" style="flex:1;padding:10px"></canvas></div>
+        <div class="panel"><div class="panel-header"><span class="panel-title">BACKEND SCORE</span></div>
+          <div class="big-metric"><div class="big-metric-label">GRADER SCORE (0.0–1.0)</div><div class="big-metric-val" id="bm-backend-score" style="color:var(--yellow)">—</div><div class="big-metric-bar"><div class="big-metric-fill" id="bm-bs-bar" style="background:var(--yellow);width:0%"></div></div><div class="big-metric-trend" id="bm-bs-trend" style="color:var(--text-dim)">— Fetch score to update</div></div>
+        </div>
+        <div class="panel"><div class="panel-header"><span class="panel-title">ACTIVE THREATS NOW</span></div>
+          <div class="big-metric"><div class="big-metric-label">CURRENT ACTIVE (BACKEND)</div><div class="big-metric-val" id="bm-active" style="color:var(--yellow)">0</div><div class="big-metric-bar"><div class="big-metric-fill" id="bm-active-bar" style="background:var(--yellow);width:0%"></div></div><div class="big-metric-trend" id="bm-active-trend" style="color:var(--text-dim)">— Monitoring</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ VIEW: MAP ═══ -->
+    <div class="view" id="view-map">
+      <div class="map-view-layout">
+        <div class="panel map-canvas-wrap" id="map-wrap">
+          <div class="panel-header" style="position:absolute;top:0;left:0;right:0;z-index:10;background:rgba(3,12,9,.9)">
+            <span class="panel-title">ASSET MAP — SECTOR 7</span>
+            <span class="badge badge-live">LIVE</span>
+          </div>
+          <canvas id="map-canvas" class="map-canvas"></canvas>
+          <div id="map-nodes"></div>
+        </div>
+        <div class="panel asset-list-panel">
+          <div class="panel-header"><span class="panel-title">ASSET STATUS</span><span class="badge badge-ok" id="asset-ok-count">ALL SECURE</span></div>
+          <div class="map-legend">
+            <div class="map-legend-row"><div class="map-legend-dot" style="background:var(--green)"></div>SECURE</div>
+            <div class="map-legend-row"><div class="map-legend-dot" style="background:var(--orange)"></div>WARNING</div>
+            <div class="map-legend-row"><div class="map-legend-dot" style="background:var(--red)"></div>UNDER ATTACK</div>
+          </div>
+          <div id="asset-list" class="asset-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ VIEW: HISTORY ═══ -->
+    <div class="view" id="view-history">
+      <div class="history-view-layout">
+        <div class="panel" style="display:flex;flex-direction:column">
+          <div class="panel-header">
+            <span class="panel-title">EVENT HISTORY — SESSION LOG</span>
+            <span class="badge badge-info" id="event-count-badge">0 EVENTS</span>
+          </div>
+          <div id="history-timeline" class="history-timeline" style="flex:1"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div class="panel" style="flex:none;padding:12px">
+            <div class="panel-header" style="margin:-12px -12px 12px;padding:7px 12px"><span class="panel-title">SESSION SUMMARY</span></div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div class="hist-stat"><div class="hist-stat-label">BACKEND STEPS</div><div class="hist-stat-val" id="hs-steps" style="color:var(--cyan)">0</div></div>
+              <div class="hist-stat"><div class="hist-stat-label">THREATS DETECTED</div><div class="hist-stat-val" id="hs-detected" style="color:var(--red)">0</div></div>
+              <div class="hist-stat"><div class="hist-stat-label">THREATS RESOLVED</div><div class="hist-stat-val" id="hs-neutralized" style="color:var(--green)">0</div></div>
+              <div class="hist-stat"><div class="hist-stat-label">BACKEND DAMAGE</div><div class="hist-stat-val" id="hs-damage" style="color:var(--orange)">0</div></div>
+              <div class="hist-stat"><div class="hist-stat-label">CUMUL REWARD</div><div class="hist-stat-val" id="hs-score" style="color:var(--yellow)">0.00</div></div>
+            </div>
+          </div>
+          <div class="panel" style="flex:1">
+            <div class="panel-header"><span class="panel-title">RISK HISTORY</span></div>
+            <canvas id="history-chart" style="flex:1;padding:10px"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ CONTROL BAR ═══ -->
+    <div class="control-bar">
+      <div class="ctrl-left">
+        <!-- Task selector -->
+        <button class="task-btn active-task" id="task-easy" onclick="selectTask('easy',this)">EASY</button>
+        <button class="task-btn" id="task-medium" onclick="selectTask('medium',this)">MEDIUM</button>
+        <button class="task-btn" id="task-hard" onclick="selectTask('hard',this)">HARD</button>
+        <div style="width:1px;height:28px;background:var(--border);margin:0 4px"></div>
+        <button class="ctrl-btn danger" id="btn-reset" onclick="resetSim()"><span class="btn-icon">&#9724;</span> RESET</button>
+        <button class="ctrl-btn primary" id="btn-step" onclick="runStep()"><span class="btn-icon">&#9654;</span> STEP</button>
+        <button class="ctrl-btn" id="btn-auto" onclick="autoRun()"><span class="btn-icon">&#8635;</span> AUTO RUN</button>
+        <button class="ctrl-btn" id="btn-score" onclick="fetchScore()" style="border-color:var(--yellow);color:var(--yellow)"><span class="btn-icon">&#9733;</span> SCORE</button>
+        <button class="ctrl-btn" id="btn-state" onclick="fetchState()" style="border-color:var(--cyan);color:var(--cyan)"><span class="btn-icon">&#8635;</span> STATE</button>
+      </div>
+      <div class="ctrl-right"><span id="ctrl-status">SELECT TASK → RESET → STEP</span></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- DEBUG PANEL -->
+<div id="debug-panel">
+  <div class="dbg-header">
+    <span class="dbg-title">&#9878; DEBUG CONSOLE</span>
+    <button class="dbg-close" onclick="document.getElementById('debug-panel').style.display='none'">&#10005;</button>
+  </div>
+  <div class="dbg-grid">
+    <span class="dbg-key">TASK</span><span class="dbg-val" id="dbg-task" style="color:var(--cyan)">—</span>
+    <span class="dbg-key">LAST ACTION</span><span class="dbg-val" id="dbg-action" style="color:var(--cyan)">—</span>
+    <span class="dbg-key">REWARD</span><span class="dbg-val" id="dbg-reward" style="color:var(--green)">—</span>
+    <span class="dbg-key">DONE</span><span class="dbg-val" id="dbg-done" style="color:var(--orange)">NO</span>
+    <span class="dbg-key">CUMUL SCORE</span><span class="dbg-val" id="dbg-score" style="color:var(--yellow);font-weight:bold">0.00</span>
+    <span class="dbg-key">BACKEND SCORE</span><span class="dbg-val" id="dbg-backend-score" style="color:var(--yellow)">—</span>
+    <span class="dbg-key">DAMAGE</span><span class="dbg-val" id="dbg-damage" style="color:var(--red)">—</span>
+    <span class="dbg-key">SIM TIME</span><span class="dbg-val" id="dbg-time" style="color:var(--text)">—</span>
+    <span class="dbg-key">ACTIVE THREATS</span><span class="dbg-val" id="dbg-active" style="color:var(--orange)">—</span>
+    <span class="dbg-key">DEF UNITS</span><span class="dbg-val" id="dbg-def" style="color:var(--blue)">—</span>
+    <span class="dbg-key">CYBER TEAMS</span><span class="dbg-val" id="dbg-cyb" style="color:var(--purple)">—</span>
+  </div>
+  <div class="dbg-actions">
+    <button class="dbg-btn" onclick="toggleFullState()">FULL STATE JSON</button>
+    <button class="dbg-btn" onclick="fetchState()">REFRESH STATE</button>
+    <button class="dbg-btn" onclick="fetchScore()">BACKEND SCORE</button>
+  </div>
+  <pre id="dbg-full-state"></pre>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
