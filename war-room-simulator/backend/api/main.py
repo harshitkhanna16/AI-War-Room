@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
 
@@ -20,10 +19,6 @@ app.add_middleware(
 env = None
 
 # ── API ROUTES ────────────────────────────────────────────────────────
-
-@app.get("/")
-def root():
-    return {"status": "running"}
 
 @app.post("/reset")
 def reset(task: str = "easy"):
@@ -56,19 +51,17 @@ def get_score():
 
 # ── SERVE FRONTEND ────────────────────────────────────────────────────
 
-# Serves /assets/audios/beep.mp3 etc.
-app.mount("/assets", StaticFiles(directory="frontend/assets"), name="assets")
+# ✅ ROOT → show UI
+@app.get("/")
+def root():
+    return FileResponse("../../frontend/index.html")
 
-@app.get("/app")
-def serve_frontend():
-    return FileResponse("frontend/index.html")
-
-# ✅ Catch-all: handles script.js, style.css, and everything else
+# ✅ Serve all frontend files (JS, CSS, etc.)
 @app.get("/{full_path:path}")
 def catch_all(full_path: str):
-    # Skip API-like paths to avoid shadowing (safety net)
-    candidate = os.path.join("frontend", full_path)
+    candidate = os.path.join("../../frontend", full_path)
+
     if os.path.exists(candidate) and os.path.isfile(candidate):
         return FileResponse(candidate)
-    # Fallback: always serve index.html (SPA behavior)
-    return FileResponse("frontend/index.html")
+
+    return FileResponse("../../frontend/index.html")
