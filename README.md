@@ -1,5 +1,5 @@
 ---
-title: War Room Simulator
+title: AI War Room
 emoji: 🛡️
 colorFrom: red
 colorTo: green
@@ -12,9 +12,9 @@ tags: [openenv, reinforcement-learning, cybersecurity, drone-defense, simulation
 
 > **An OpenEnv-compatible reinforcement learning environment where an AI agent defends critical infrastructure against simultaneous cyber attacks and drone incursions in real time.**
 
-🔴 **Live Demo:** [https://HarshitKhanna16-war-room-simulator.hf.space/app](https://HarshitKhanna16-war-room-simulator.hf.space/app)
+🔴 **Live Demo:** [https://harshitkhanna16-ai-war-room.hf.space](https://harshitkhanna16-ai-war-room.hf.space)
 
-API Reference: https://harshitkhanna16-war-room-simulator.hf.space/docs
+📖 **API Docs:** [https://harshitkhanna16-ai-war-room.hf.space/docs](https://harshitkhanna16-ai-war-room.hf.space/docs)
 
 ---
 
@@ -30,7 +30,7 @@ This environment models exactly that challenge:
 - 👁️ **Partial observability** — not all threats are visible at once, mimicking real sensor limitations
 - ⏱️ **Time pressure** — delayed action leads to cascading damage and mission failure
 
-This is not a toy or a game. It directly maps to real SOC decision-making workflows and could be used to train, evaluate, and benchmark autonomous defense agents.
+This directly maps to real SOC decision-making workflows and can be used to train, evaluate, and benchmark autonomous defense agents.
 
 ---
 
@@ -38,11 +38,11 @@ This is not a toy or a game. It directly maps to real SOC decision-making workfl
 
 | Property | Value |
 |---|---|
-| **Environment ID** | `war-room-simulator` |
+| **Environment ID** | `war_room` |
 | **Action Space** | Multi-discrete (`idle`, `block cyber`, `intercept drone`) |
 | **Observation Space** | Structured JSON — threats, resources, damage, time |
-| **Reward Range** | `0.0 – 1.0` (normalized by grader) |
-| **Episode Length** | Up to 50 steps (terminates early if damage ≥ 10) |
+| **Reward Range** | `0.0 – 1.0` (normalized) |
+| **Episode Length** | Variable by task (terminates early if damage ≥ 10) |
 | **Tasks** | 3 — Easy → Medium → Hard |
 | **Framework** | OpenEnv spec compliant |
 
@@ -60,11 +60,11 @@ Actions are sent as a list — one action per available resource unit per step.
 
 | Action | Description |
 |---|---|
-| `idle` | Do nothing this step — conserve resources |
+| `idle` | Do nothing this step |
 | `block cyber` | Deploy one cyber team to neutralize an active cyber threat |
 | `intercept drone` | Deploy one defense unit to shoot down an incoming drone |
 
-**Key design:** Multiple actions can be issued per step, but each consumes one resource unit. If no resources remain, additional actions are ignored — forcing the agent to learn resource-aware prioritization.
+Multiple actions can be issued per step, but each consumes one resource unit. If no resources remain, additional actions are ignored — forcing the agent to learn resource-aware prioritization.
 
 ---
 
@@ -111,7 +111,7 @@ Full typed observation returned by `reset()`, `step()`, and `state()`:
 | `damage` | int | Accumulated damage (0–10, episode ends at 10) |
 | `resources.defense_units` | int | Available drone interceptors |
 | `resources.cyber_teams` | int | Available cyber responders |
-| `visible_threats` | list | Currently observable active threats |
+| `visible_threats` | list | Currently observable active threats (partial observability) |
 | `threats` | list | Full threat history including resolved |
 
 ---
@@ -119,56 +119,49 @@ Full typed observation returned by `reset()`, `step()`, and `state()`:
 ## 🏆 Tasks
 
 ### ✅ Easy — `POST /reset?task=easy`
-- 1–2 simultaneous threats maximum
-- Slow cyber escalation rate
-- Generous resources (3 defense units, 2 cyber teams)
-- Drones start far away (distance 40–50)
-- **Expected agent score: 0.70 – 1.00**
+- 1 drone threat, ample resources (2 defense units, 1 cyber team)
+- 6 max steps, drone starts at distance 20
+- **Expected agent score: 0.80 – 1.00**
 
 ### ⚠️ Medium — `POST /reset?task=medium`
-- 2–3 simultaneous threats
-- Moderate escalation speed
-- Balanced resources (2 defense units, 1 cyber team)
-- Drones at medium range (distance 25–40)
-- **Expected agent score: 0.40 – 0.70**
+- 3 simultaneous threats (2 drones + 1 cyber), 1 hidden
+- Limited resources (1 defense unit, 1 cyber team), 8 max steps
+- **Expected agent score: 0.50 – 0.75**
 
 ### 🔴 Hard — `POST /reset?task=hard`
-- 3–5 simultaneous threats
-- Rapid cyber escalation (reaches critical in 3 steps)
-- Minimal resources (1 defense unit, 1 cyber team)
-- Fast drones at close range (distance 10–25, high speed)
-- **Expected agent score: 0.10 – 0.40**
+- 4 threats (2 drones + 2 cyber), 2 hidden
+- Extreme resource constraints (1 defense unit, 1 cyber team), 10 max steps
+- Cyber breach already in progress at start
+- **Expected agent score: 0.20 – 0.50**
 
 ---
 
 ## 🎯 Reward Function
 
-Rewards are **dense and shaped** — the agent receives signal at every step, not just at episode end. This enables meaningful gradient-based learning throughout the episode.
+Rewards are **dense and shaped** — the agent receives signal at every step, not just at episode end.
 
-| Event | Reward |
+| Event | Reward Delta |
 |---|---|
-| Threat successfully neutralized | `+0.30` |
-| Step survived with zero new damage | `+0.10` |
-| Damage taken this step | `-0.20 × damage_points` |
-| Idle while threats are active | `-0.05` (light penalty) |
-| Episode completed, damage < 3 | `+0.50` bonus |
-| Episode terminated due to max damage | `-0.50` penalty |
+| Threat successfully neutralized | `+0.15` per threat |
+| Action taken while threats active | `+0.10` bonus |
+| Damage accumulated | `-0.10 × damage` |
+| Critical cyber threat active | `-0.30` per threat |
+| Drone within distance 5 | `-0.20` per threat |
+| Cyber threat at breach stage | `-0.15` per threat |
+| Idle while threats are active | `-0.10` |
+| Time pressure | `-0.01 × step` |
 
-Final score returned by `/score` is normalized to **[0.0, 1.0]** using the task grader, enabling fair cross-task comparison.
-
-**Design rationale:** Partial progress rewards (per neutralization, per safe step) ensure the agent learns meaningful policies even in hard tasks where perfect play is unlikely.
+Final score from `/score` is normalized to **[0.0, 1.0]** via the deterministic task grader.
 
 ---
 
 ## 🔌 API Reference
 
-Hugging Face: https://harshitkhanna16-war-room-simulator.hf.space/docs
-
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/` | Health check — returns `{"status": "running"}` |
-| `POST` | `/reset?task=easy` | Reset env, returns initial state |
-| `POST` | `/step` | Take a step, returns state + reward + done |
+| `GET` | `/` | Serves the live War Room UI |
+| `POST` | `/reset?task=easy` | Reset env, returns initial observation |
+| `POST` | `/step` | Take a step, returns `state + reward + done` |
 | `GET` | `/state` | Get current state without stepping |
 | `GET` | `/score` | Get final normalized score (0.0–1.0) |
 
@@ -177,7 +170,7 @@ Hugging Face: https://harshitkhanna16-war-room-simulator.hf.space/docs
 ```python
 import requests
 
-BASE = "https://HarshitKhanna16-war-room-simulator.hf.space"
+BASE = "https://harshitkhanna16-ai-war-room.hf.space"
 
 # 1. Reset
 resp = requests.post(f"{BASE}/reset?task=easy").json()
@@ -207,30 +200,33 @@ print(f"Final score: {score['score']:.3f}")
 python inference.py
 ```
 
-The baseline agent uses a **priority-based heuristic**:
-- Cyber threats at `critical` stage → highest priority
-- Drones with `distance < 15` → second priority
-- Cyber threats at `breach` stage → third priority
-- Remaining threats filled by available resources
+The baseline agent uses the **OpenAI client** (via `API_BASE_URL` + `MODEL_NAME` env vars) with a rule-based fallback if the LLM call fails.
+
+### Required Environment Variables
+
+```bash
+export API_BASE_URL="https://api.openai.com/v1"
+export MODEL_NAME="gpt-4o-mini"
+export HF_TOKEN="your_token_here"
+```
 
 ### Expected Output Format
 
 ```
-[START] task=easy env=war-room-simulator model=baseline
-[STEP]  step=1 action=intercept_drone reward=0.24 done=false error=null
-[STEP]  step=2 action=block_cyber reward=0.30 done=false error=null
-[STEP]  step=3 action=idle reward=0.10 done=false error=null
+[START] task=easy env=war_room model=gpt-4o-mini
+[STEP] step=1 action=intercept_drone reward=0.24 done=false error=null
+[STEP] step=2 action=block_cyber reward=0.30 done=false error=null
 ...
-[END]   success=true steps=22 score=0.74 rewards=0.24,0.30,0.10,...
+[END] success=true steps=6 score=0.85 rewards=[0.24,0.30,...]
 ```
 
 ### Baseline Scores
 
-| Task | Steps | Score |
+| Task | Max Steps | Expected Score |
 |---|---|---|
-| Easy | ~20 | ~0.74 |
-| Medium | ~28 | ~0.49 |
-| Hard | ~35 | ~0.22 |
+| Easy | 6 | 0.80 – 1.00 |
+| Medium | 8 | 0.50 – 0.75 |
+| Hard | 10 | 0.20 – 0.50 |
 
 ---
 
@@ -244,8 +240,8 @@ The baseline agent uses a **priority-based heuristic**:
 
 ```bash
 # Clone
-git clone https://huggingface.co/spaces/HarshitKhanna16/war-room-simulator
-cd war-room-simulator
+git clone https://huggingface.co/spaces/HarshitKhanna16/AI-War-Room
+cd AI-War-Room
 
 # Install
 pip install -r requirements.txt
@@ -254,13 +250,13 @@ pip install -r requirements.txt
 uvicorn backend.api.main:app --host 0.0.0.0 --port 7860
 ```
 
-Then open: `http://localhost:7860/app`
+Open: `http://localhost:7860`
 
 ### Docker Setup
 
 ```bash
-docker build -t war-room-simulator .
-docker run -p 7860:7860 war-room-simulator
+docker build -t ai-war-room .
+docker run -p 7860:7860 ai-war-room
 ```
 
 ---
@@ -268,25 +264,31 @@ docker run -p 7860:7860 war-room-simulator
 ## 📁 Project Structure
 
 ```
-war-room-simulator/
+AI-War-Room/
 ├── backend/
 │   ├── api/
 │   │   └── main.py          # FastAPI server + static frontend serving
 │   ├── env/
 │   │   ├── env.py           # Core OpenEnv environment logic
 │   │   └── models.py        # Pydantic typed Action/Observation models
-│   ├── grader/              # Task graders — deterministic scoring per task
-│   ├── tasks/               # Task configs (easy / medium / hard)
-│   ├── agent/               # Baseline heuristic agent
-│   └── utils/               # Shared utilities
+│   ├── grader/
+│   │   ├── grader.py        # Deterministic task graders (easy/medium/hard)
+│   │   └── reward.py        # Dense step-level reward function
+│   ├── tasks/
+│   │   ├── task_easy.py     # Easy task config
+│   │   ├── task_medium.py   # Medium task config
+│   │   └── task_hard.py     # Hard task config
+│   ├── agent/
+│   │   └── risk.py          # Risk scoring for threat prioritization
+│   └── utils/
+│       └── logger.py        # Optional step logging
 ├── frontend/
 │   ├── index.html           # Live War Room command UI
 │   ├── script.js            # Real-time backend-driven frontend logic
 │   └── style.css            # Military-themed dark UI styling
 ├── Dockerfile               # Container definition
-├── inference.py             # Baseline inference script (hackathon required)
+├── inference.py             # Baseline inference script (OpenAI client)
 ├── openenv.yaml             # OpenEnv metadata and task registry
-├── pyproject.toml           # Python package configuration
 ├── requirements.txt         # Python dependencies
 └── README.md                # This file
 ```
@@ -295,17 +297,16 @@ war-room-simulator/
 
 ## ✅ OpenEnv Compliance Checklist
 
-- ✅ `reset()` returns clean, typed initial observation
-- ✅ `step(action)` returns `(state, reward, done, info)` 
+- ✅ `reset()` returns clean typed initial observation
+- ✅ `step(action)` returns `(state, reward, done, info)`
 - ✅ `state()` returns current observation without side effects
 - ✅ Typed Pydantic models for `Action` and `Observation`
-- ✅ `openenv.yaml` present at repo root
-- ✅ `pyproject.toml` present at repo root
-- ✅ `inference.py` present at repo root
-- ✅ `Dockerfile` present at repo root — builds and runs cleanly
-- ✅ 3 tasks with programmatic graders (easy → medium → hard)
+- ✅ `openenv.yaml` present at repo root with correct YAML syntax
+- ✅ `inference.py` present at repo root using OpenAI client
+- ✅ `Dockerfile` present — builds and runs cleanly on port 7860
+- ✅ 3 tasks with deterministic graders (easy → medium → hard)
 - ✅ All scores in `[0.0, 1.0]` range
-- ✅ Dense reward signal (not sparse)
+- ✅ Dense reward signal throughout episode
 - ✅ Deployed and running on Hugging Face Spaces (Docker)
 - ✅ Episode terminates cleanly with `done=true`
 
@@ -316,6 +317,7 @@ war-room-simulator/
 - **FastAPI** — High-performance async backend API
 - **Pydantic** — Typed observation and action models
 - **Uvicorn** — ASGI server
+- **OpenAI SDK** — LLM agent inference
 - **Docker** — Containerized deployment
 - **Hugging Face Spaces** — Cloud hosting
 - **Chart.js** — Live real-time metrics charts
@@ -323,6 +325,6 @@ war-room-simulator/
 
 ---
 
-## 👤 Author
+## 👤 Authors
 
 **Manas Khanna** & **Harshit Khanna**

@@ -18,6 +18,11 @@ app.add_middleware(
 
 env = None
 
+# Absolute path to frontend — works regardless of working directory
+FRONTEND_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "..", "..", "frontend"
+)
+
 # ── API ROUTES ────────────────────────────────────────────────────────
 
 @app.post("/reset")
@@ -50,8 +55,6 @@ def get_score():
     return {"score": env.get_score()}
 
 # ── SERVE FRONTEND ────────────────────────────────────────────────────
-
-FRONTEND_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "frontend")
 
 @app.get("/")
 def root():

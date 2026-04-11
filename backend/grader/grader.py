@@ -1,7 +1,5 @@
 def _normalize_score(score):
-    """
-    Ensure score is always in [0, 1]
-    """
+    """Ensure score is always in [0, 1]"""
     return max(0.0, min(1.0, round(score, 2)))
 
 
@@ -9,14 +7,14 @@ def _normalize_score(score):
 def grade_easy(env):
     state = env.state()
 
-    damage = state.get("damage", 0)
-    threats = state.get("threats", [])
-
+    damage   = state.get("damage", 0)
+    threats  = state.get("threats", [])
     resolved = sum(1 for t in threats if t.get("status") == "resolved")
 
+    # Start from 1.0, deduct for damage, bonus for resolved (capped)
     score = 1.0
     score -= damage * 0.1
-    score += resolved * 0.05
+    score += min(0.2, resolved * 0.05)   # ✅ cap resolved bonus at 0.2
 
     return _normalize_score(score)
 
@@ -25,15 +23,14 @@ def grade_easy(env):
 def grade_medium(env):
     state = env.state()
 
-    damage = state.get("damage", 0)
-    threats = state.get("threats", [])
-
+    damage   = state.get("damage", 0)
+    threats  = state.get("threats", [])
     resolved = sum(1 for t in threats if t.get("status") == "resolved")
-    active = sum(1 for t in threats if t.get("status") == "active")
+    active   = sum(1 for t in threats if t.get("status") == "active")
 
     score = 1.0
     score -= damage * 0.15
-    score += resolved * 0.04
+    score += min(0.2, resolved * 0.04)   # ✅ cap resolved bonus
     score -= active * 0.03
 
     return _normalize_score(score)
@@ -43,10 +40,10 @@ def grade_medium(env):
 def grade_hard(env):
     state = env.state()
 
-    damage = state.get("damage", 0)
-    threats = state.get("threats", [])
-
+    damage   = state.get("damage", 0)
+    threats  = state.get("threats", [])
     resolved = sum(1 for t in threats if t.get("status") == "resolved")
+
     critical_active = sum(
         1 for t in threats
         if t.get("type") == "cyber"
@@ -56,13 +53,13 @@ def grade_hard(env):
 
     score = 1.0
     score -= damage * 0.2
-    score += resolved * 0.03
+    score += min(0.15, resolved * 0.03)  # ✅ cap resolved bonus
     score -= critical_active * 0.1
 
     return _normalize_score(score)
 
 
-# 🔥 MASTER GRADER (IMPORTANT)
+# 🔥 MASTER GRADER
 class WarRoomGrader:
     def __init__(self, task_name):
         self.task_name = task_name
@@ -70,12 +67,8 @@ class WarRoomGrader:
     def evaluate(self, env):
         if self.task_name == "easy":
             return grade_easy(env)
-
         elif self.task_name == "medium":
             return grade_medium(env)
-
         elif self.task_name == "hard":
             return grade_hard(env)
-
-        # fallback (never fail)
-        return grade_easy(env)
+        return grade_easy(env)   # safe fallback

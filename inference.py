@@ -4,15 +4,15 @@ from openai import OpenAI
 import json
 
 # Add root path
-sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
 from backend.env.env import WarRoomEnv
 from backend.agent.risk import risk_score
 
-# ── LLM CLIENT SETUP (required by hackathon spec) ────────────────────
+# ── LLM CLIENT (required by hackathon spec) ───────────────────────────
 API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
-MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
-HF_TOKEN = os.getenv("HF_TOKEN", "")
+MODEL_NAME   = os.getenv("MODEL_NAME", "gpt-4o-mini")
+HF_TOKEN     = os.getenv("HF_TOKEN", "")
 
 client = OpenAI(
     api_key=HF_TOKEN or os.getenv("OPENAI_API_KEY", ""),
@@ -20,7 +20,7 @@ client = OpenAI(
 )
 
 
-# ── LLM AGENT ────────────────────────────────────────────────────────
+# ── LLM AGENT ─────────────────────────────────────────────────────────
 def llm_agent(state):
     prompt = f"""You are a war room defense AI. Given the current state, decide actions.
 
@@ -58,13 +58,13 @@ Respond with ONLY the JSON array, no explanation."""
     return rule_based_agent(state)
 
 
-# ── RULE-BASED FALLBACK AGENT ─────────────────────────────────────────
+# ── RULE-BASED FALLBACK ────────────────────────────────────────────────
 def rule_based_agent(state):
-    threats = state.get("visible_threats", [])
+    threats   = state.get("visible_threats", [])
     resources = state.get("resources", {})
 
     defense_units = resources.get("defense_units", 0)
-    cyber_teams = resources.get("cyber_teams", 0)
+    cyber_teams   = resources.get("cyber_teams", 0)
 
     def threat_score(threat):
         if threat.get("type") == "cyber":
@@ -93,21 +93,21 @@ def rule_based_agent(state):
     return actions if actions else ["idle"]
 
 
-# ── FORMAT ACTIONS ────────────────────────────────────────────────────
+# ── FORMAT ACTIONS ─────────────────────────────────────────────────────
 def format_action(action):
     if isinstance(action, list):
         return "+".join([a.replace(" ", "_") for a in action])
     return str(action).replace(" ", "_")
 
 
-# ── RUN TASK ──────────────────────────────────────────────────────────
+# ── RUN TASK ───────────────────────────────────────────────────────────
 def run_task(task_name):
-    env = WarRoomEnv(task_name)
+    env   = WarRoomEnv(task_name)
     state = env.reset()
 
     model_name = MODEL_NAME
 
-    # ✅ START — exact format required
+    # ✅ START — exact format required by spec
     print(f"[START] task={task_name} env=war_room model={model_name}")
 
     rewards_list = []
@@ -125,7 +125,7 @@ def run_task(task_name):
             rewards_list.append(reward)
             action_str = format_action(action)
 
-            # ✅ STEP — exact format required
+            # ✅ STEP — exact format required by spec
             print(f"[STEP] step={step} action={action_str} reward={reward:.2f} done={str(done).lower()} error=null")
 
         except Exception as e:
@@ -136,16 +136,15 @@ def run_task(task_name):
         if step >= env.max_steps:
             done = True
 
-    # ✅ SCORE
-    score = round(float(env.get_score()), 2)
+    score   = round(float(env.get_score()), 2)
     success = score >= 0.5
     rewards_str = "[" + ",".join([f"{r:.2f}" for r in rewards_list]) + "]"
 
-    # ✅ END — exact format required
+    # ✅ END — exact format required by spec
     print(f"[END] success={str(success).lower()} steps={step} score={score:.2f} rewards={rewards_str}")
 
 
-# ── MAIN ──────────────────────────────────────────────────────────────
+# ── MAIN ───────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     for task in ["easy", "medium", "hard"]:
         run_task(task)

@@ -4,36 +4,27 @@ import copy
 def simulate(state, action):
     new_state = copy.deepcopy(state)
 
-    threats = new_state.get("threats", [])
-    resources = new_state.get("resources", {})
-
+    threats       = new_state.get("threats", [])
+    resources     = new_state.get("resources", {})
     defense_units = resources.get("defense_units", 0)
-    cyber_teams = resources.get("cyber_teams", 0)
+    cyber_teams   = resources.get("cyber_teams", 0)
 
     used_defense = 0
-    used_cyber = 0
+    used_cyber   = 0
 
     # ✅ Normalize action (OpenEnv compliant)
     if isinstance(action, dict):
         action = action.get("actions", [])
-
     if not isinstance(action, list):
         action = []
 
-    # =========================
-    # 🔄 PROCESS EACH THREAT
-    # =========================
+    # ── PROCESS EACH THREAT ──────────────────────────────────────────
     for t in threats:
 
-        # Skip non-active threats
         if t.get("status") != "active":
             continue
 
         t_type = t.get("type")
-
-        # =========================
-        # 🔴 ACTION HANDLING
-        # =========================
 
         # 🚁 DRONE INTERCEPTION
         if t_type == "drone" and "intercept drone" in action:
@@ -49,15 +40,12 @@ def simulate(state, action):
                 used_cyber += 1
                 continue
 
-        # =========================
-        # ⚠️ THREAT EVOLUTION
-        # =========================
+        # ── THREAT EVOLUTION ─────────────────────────────────────────
 
         # 🚁 DRONE MOVEMENT
         if t_type == "drone":
-            distance = t.get("distance", 0)
-            speed = t.get("speed", 0)
-
+            distance      = t.get("distance", 0)
+            speed         = t.get("speed", 0)
             t["distance"] = distance - speed
 
             if t["distance"] <= 0:
@@ -70,11 +58,12 @@ def simulate(state, action):
 
             if stage == "probing":
                 t["stage"] = "breach"
-
             elif stage == "breach":
                 t["stage"] = "critical"
-
             elif stage == "critical":
                 new_state["damage"] = new_state.get("damage", 0) + 2
+
+    # ✅ Cap damage at 10 (matches done condition in env.py)
+    new_state["damage"] = min(10, new_state.get("damage", 0))
 
     return new_state
