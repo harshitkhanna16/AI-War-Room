@@ -14,6 +14,8 @@ tags: [openenv, reinforcement-learning, cybersecurity, drone-defense, simulation
 
 🔴 **Live Demo:** [https://HarshitKhanna16-war-room-simulator.hf.space/app](https://HarshitKhanna16-war-room-simulator.hf.space/app)
 
+API Reference: https://harshitkhanna16-war-room-simulator.hf.space/docs
+
 ---
 
 ## 🌍 Real-World Utility
@@ -159,6 +161,8 @@ Final score returned by `/score` is normalized to **[0.0, 1.0]** using the task 
 ---
 
 ## 🔌 API Reference
+
+Hugging Face: https://harshitkhanna16-war-room-simulator.hf.space/docs
 
 | Method | Endpoint | Description |
 |---|---|---|
