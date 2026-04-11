@@ -701,7 +701,7 @@ function updateAssetMap(cyberActive, droneActive) {
 }
 
 // =====================================================================
-// ALERT OVERLAY
+// ALERT OVERLAY — ✅ ONLY CHANGE: cyber → warning sound, drone → siren
 // =====================================================================
 function triggerAlertOverlay(threats) {
   if (!threats || !threats.length) return;
@@ -714,31 +714,34 @@ function triggerAlertOverlay(threats) {
   const at = document.getElementById('alert-text');
   const as = document.getElementById('alert-sub');
   const overlay = document.getElementById('alert-overlay');
-  
-  if (hasCyber) { 
-    if (at) at.textContent = 'CRITICAL CYBER THREAT'; 
-    if (as) as.textContent = 'CYBER ATTACK DETECTED — IMMEDIATE RESPONSE REQUIRED'; 
-  } else { 
-    if (at) at.textContent = 'HOSTILE DRONE DETECTED'; 
-    if (as) as.textContent = 'AIRSPACE BREACH — DEPLOY COUNTERMEASURES'; 
+
+  if (hasCyber) {
+    if (at) at.textContent = 'CRITICAL CYBER THREAT';
+    if (as) as.textContent = 'CYBER ATTACK DETECTED — IMMEDIATE RESPONSE REQUIRED';
+    // 🔊 CYBER → warning sound
+    audioWarning.currentTime = 0;
+    audioWarning.play().catch(e => console.log("Audio blocked: ", e));
+  } else {
+    if (at) at.textContent = 'HOSTILE DRONE DETECTED';
+    if (as) as.textContent = 'AIRSPACE BREACH — DEPLOY COUNTERMEASURES';
+    // 🔊 DRONE → siren sound
+    audioSiren.currentTime = 0;
+    audioSiren.play().catch(e => console.log("Audio blocked: ", e));
   }
-  
+
   overlay.classList.remove('hidden');
   document.body.classList.add('red-flash');
 
-  audioSiren.currentTime = 0;
-  audioSiren.play().catch(e => console.log("Audio blocked: ", e));
-
   if (alertTimeout) clearTimeout(alertTimeout);
-  alertTimeout = setTimeout(() => { 
-    overlay.classList.add('hidden'); 
-    document.body.classList.remove('red-flash'); 
-
-    audioSiren.pause();
-    audioSiren.currentTime = 0;
-
+  alertTimeout = setTimeout(() => {
+    overlay.classList.add('hidden');
+    document.body.classList.remove('red-flash');
+    // Stop both sounds cleanly
+    audioSiren.pause(); audioSiren.currentTime = 0;
+    audioWarning.pause(); audioWarning.currentTime = 0;
   }, 1800);
 }
+
 // =====================================================================
 // DEBUG PANEL
 // =====================================================================
@@ -989,6 +992,7 @@ function autoRun() {
     runStep();
   }
 }
+
 function stopSimulation() {
   if (autoInterval) {
     clearInterval(autoInterval);
