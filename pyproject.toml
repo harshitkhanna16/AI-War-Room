@@ -1,4 +1,4 @@
-[build-system]
+﻿[build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.backends.legacy:build"
 
@@ -7,7 +7,13 @@ name = "ai-war-room"
 version = "0.1.0"
 description = "AI War Room - Multi-threat defense simulation environment"
 requires-python = ">=3.10"
+dependencies = [
+    "openenv-core>=0.2.0",
+    "fastapi",
+    "uvicorn",
+    "openai",
+    "pydantic"
+]
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["backend*", "frontend*"]
+[project.scripts]
+server = "backend.api.main:app"
