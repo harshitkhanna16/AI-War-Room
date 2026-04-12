@@ -1,6 +1,6 @@
 def _normalize_score(score):
-    """Ensure score is always in [0, 1]"""
-    return max(0.0, min(1.0, round(score, 2)))
+    """Ensure score is always strictly in (0, 1)"""
+    return max(0.01, min(0.99, round(score, 2)))
 
 
 # 🟢 EASY TASK
@@ -11,10 +11,9 @@ def grade_easy(env):
     threats  = state.get("threats", [])
     resolved = sum(1 for t in threats if t.get("status") == "resolved")
 
-    # Start from 1.0, deduct for damage, bonus for resolved (capped)
     score = 1.0
     score -= damage * 0.1
-    score += min(0.2, resolved * 0.05)   # ✅ cap resolved bonus at 0.2
+    score += min(0.2, resolved * 0.05)
 
     return _normalize_score(score)
 
@@ -30,7 +29,7 @@ def grade_medium(env):
 
     score = 1.0
     score -= damage * 0.15
-    score += min(0.2, resolved * 0.04)   # ✅ cap resolved bonus
+    score += min(0.2, resolved * 0.04)
     score -= active * 0.03
 
     return _normalize_score(score)
@@ -53,7 +52,7 @@ def grade_hard(env):
 
     score = 1.0
     score -= damage * 0.2
-    score += min(0.15, resolved * 0.03)  # ✅ cap resolved bonus
+    score += min(0.15, resolved * 0.03)
     score -= critical_active * 0.1
 
     return _normalize_score(score)
@@ -71,4 +70,4 @@ class WarRoomGrader:
             return grade_medium(env)
         elif self.task_name == "hard":
             return grade_hard(env)
-        return grade_easy(env)   # safe fallback
+        return grade_easy(env)
